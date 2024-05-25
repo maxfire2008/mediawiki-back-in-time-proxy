@@ -61,37 +61,30 @@ def get_page(date, page):
     div.append(a)
     soup.find("div", {"id": "mw-revision-nav"}).insert_after(div)
 
+    script = soup.new_tag("script")
+    script.string = (
+        """
+// Every 1 second, check for a tags and update their href
+setInterval(() => {
+    document.querySelectorAll("a").forEach((a) => {
+        if (a.attributes.href !== undefined && a.attributes.href.value.startsWith("/w/")) {
+            a.attributes.href.value = '/"""
+        + date
+        + """' + a.attributes.href.value;
+        }
+    });
+}, 1000);
+"""
+    )
+
+    soup.body.append(script)
+
     return str(soup)
 
 
 @app.route("/w/<path:page>")
 def error(page):
     return "Please provide a date", 400
-
-
-@app.route("/api.php")
-def api_php():
-    params = flask.request.args.to_dict()
-    response = requests.get(f"{MEDIAWIKI_INDEX_URL}/api.php", params=params)
-    response_content = response.content.decode("utf-8")
-    if "page" in params and params["page"] == "MediaWiki:Sidebar-versions":
-        print("Modifying sidebar")
-        data = json.loads(response_content)
-        data_text_soup = BeautifulSoup(data["text"], "html.parser")
-        data_parse_text_soup = BeautifulSoup(data["parse"]["text"], "html.parser")
-        for tag in data_text_soup.find_all("a"):
-            if tag.has_attr("href") and tag["href"].startswith("/w/"):
-                tag["href"] = f"/{flask.request.args['date']}{tag['href']}"
-        for tag in data_parse_text_soup.find_all("a"):
-            if tag.has_attr("href") and tag["href"].startswith("/w/"):
-                tag["href"] = f"/{flask.request.args['date']}{tag['href']}"
-
-        data["text"] = str(data_text_soup)
-        data["parse"]["text"] = str(data_parse_text_soup)
-        response_content = json.dumps(data)
-    prox_response = flask.Response(response_content)
-    prox_response.headers["content-type"] = response.headers["content-type"]
-    return prox_response
 
 
 @app.errorhandler(404)
