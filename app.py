@@ -116,7 +116,8 @@ def get_page(date, page):
         img = soup.new_tag("img")
         img["class"] = "mw-file-element"
         img["decoding"] = "async"
-        img["width"] = tag.find("span")["data-width"]
+        if tag.find("span").has_attr("data-width"):
+            img["width"] = tag.find("span")["data-width"]
         img["loading"] = "lazy"
         img["src"] = old_url
         img["srcset"] = old_url
